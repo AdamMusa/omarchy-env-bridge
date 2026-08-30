@@ -394,11 +394,15 @@ OmarchyUI.plugin do
               text "USER MANAGER", style: :caption, width: 190
             end
             entries.each_with_index do |entry, index|
+              plugin_value = entry.fetch("detail", "").sub("plugin: ", "")
+              manager_value = entry.fetch("meta", "").sub("user manager: ", "")
+              plugin_value = plugin_value.byteslice(0, 65).to_s + "…" if plugin_value.bytesize > 68
+              manager_value = manager_value.byteslice(0, 65).to_s + "…" if manager_value.bytesize > 68
               row spacing: 10 do
                 icon status_icon.call(entry.fetch("status", "")), size: 14, color: status_color.call(entry.fetch("status", ""))
-                text entry.fetch("title"), width: 146, color: status_color.call(entry.fetch("status", ""))
-                text entry.fetch("detail", "").sub("plugin: ", ""), style: :caption, width: 190, wrap: true
-                text entry.fetch("meta", "").sub("user manager: ", ""), style: :caption, width: 190, wrap: true
+                text entry.fetch("title"), width: 160, color: status_color.call(entry.fetch("status", "")), wrap: true
+                text plugin_value, style: :caption, width: 180, wrap: true
+                text manager_value, style: :caption, width: 180, wrap: true
               end
               separator unless index == entries.length - 1
             end
