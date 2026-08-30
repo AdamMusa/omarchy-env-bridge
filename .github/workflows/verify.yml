@@ -1,0 +1,37 @@
+name: Verify plugin
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - name: Verify runtime checksum
+        run: sha256sum --check omarchy-ui-runtime.sha256
+      - name: Verify signed runtime provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh attestation verify omarchy-ui-runtime --repo AdamMusa/omarchy-ui
+      - name: Compare immutable release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/runtime-release"
+          gh release download runtime-v0.1.0 --repo AdamMusa/omarchy-ui \
+            --pattern omarchy-ui-runtime --dir "$RUNNER_TEMP/runtime-release"
+          cmp omarchy-ui-runtime "$RUNNER_TEMP/runtime-release/omarchy-ui-runtime"
+      - name: Check Ruby and backend behavior
+        run: |
+          ruby -c main.rb
+          ruby -c lib/backend.rb
+          ruby test/backend_test.rb
+      - name: Check manifest contract
+        run: jq -e '.schemaVersion == 1 and (.kinds | length == 3)' manifest.json

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "izeesoft.env-bridge",
+  "name": "Env Bridge",
+  "version": "0.1.0",
+  "author": "Adam Moussa Ali",
+  "license": "MIT",
+  "description": "Safe environment-variable drift inspector for interactive and systemd user sessions.",
+  "kinds": [
+    "service",
+    "bar-widget",
+    "panel"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Env Bridge",
+    "description": "Compare the environment seen by desktop apps with the systemd user manager.",
+    "category": "Developer Tools",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
