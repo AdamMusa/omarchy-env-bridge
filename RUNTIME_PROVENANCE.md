@@ -4,12 +4,16 @@ The bundled `omarchy-ui-runtime` is byte-for-byte the artifact published by an
 independently attested Omarchy UI release. It is verified separately from the
 earlier runtime bundled by the marketplace-approved Omarchy Phone plugin.
 
-- Release: [`runtime-v0.1.0`](https://github.com/AdamMusa/omarchy-ui/releases/tag/runtime-v0.1.0)
-- Source revision: [`9e102e14cdc90e1b077ec37a0646d43f104eb9e3`](https://github.com/AdamMusa/omarchy-ui/tree/9e102e14cdc90e1b077ec37a0646d43f104eb9e3)
-- Remote build: [GitHub Actions run `32762173432`](https://github.com/AdamMusa/omarchy-ui/actions/runs/32762173432)
-- Signed provenance: [GitHub artifact attestation `42660584`](https://github.com/AdamMusa/omarchy-ui/attestations/42660584)
-- SHA-256: `c5a5aec0078465a14af991e7de90a13fe4294d120032a2519e1979ec8b1d6d8f`
-- Size: `1,859,816` bytes
+- Release: [`runtime-v0.1.4`](https://github.com/AdamMusa/omarchy-ui/releases/tag/runtime-v0.1.4)
+- Runtime source revision: [`acc8938cda6298e946a2f63aaf00c67b1d402787`](https://github.com/AdamMusa/omarchy-ui/tree/acc8938cda6298e946a2f63aaf00c67b1d402787)
+- Adapter release: [`omarchy-ui` `0.0.5`](https://rubygems.org/gems/omarchy-ui/versions/0.0.5) (`zui ~> 0.0.10`)
+- Adapter gem SHA-256: `5f058fa53143dd56e79688a059465bc9837c85f5520214d6ef04edcb65a39fbe`
+- Zui release: [`zui` `0.0.10`](https://rubygems.org/gems/zui/versions/0.0.10)
+- Zui gem SHA-256: `ceec71d836c396b9944c85d5f472d34f14596a28a6dbf0c0b4687a01031627c0`
+- Remote build: [GitHub Actions run `33296176108`](https://github.com/AdamMusa/omarchy-ui/actions/runs/33296176108)
+- Signed provenance: [GitHub artifact attestation `43928397`](https://github.com/AdamMusa/omarchy-ui/attestations/43928397)
+- SHA-256: `721e023e7868a0f2a85c9b63250042a97d981943d9e60b8d98cf7c781a87de6e`
+- Size: `1,880,680` bytes
 - Target: x86-64 Linux
 
 Verify independently:
@@ -19,7 +23,7 @@ sha256sum --check omarchy-ui-runtime.sha256
 gh attestation verify omarchy-ui-runtime --repo AdamMusa/omarchy-ui
 
 verify_dir=$(mktemp -d)
-gh release download runtime-v0.1.0 --repo AdamMusa/omarchy-ui   --pattern omarchy-ui-runtime --dir "$verify_dir"
+gh release download runtime-v0.1.4 --repo AdamMusa/omarchy-ui   --pattern omarchy-ui-runtime --dir "$verify_dir"
 cmp omarchy-ui-runtime "$verify_dir/omarchy-ui-runtime"
 ```
 

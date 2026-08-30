@@ -33,6 +33,7 @@ Add **Env Bridge** to the Omarchy bar and click its widget to open the panel. Th
 - State, command output, item counts, history, and rendered strings are bounded.
 - State writes use an owner-only temporary file and atomic rename.
 - System probes are read-only and invoke fixed argument arrays without a shell.
+
 - No telemetry, analytics, remote account, package installation, or privileged command is used.
 - The plugin never overwrites Omarchy, Hyprland, or application configuration.
 

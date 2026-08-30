@@ -25,13 +25,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir "$RUNNER_TEMP/runtime-release"
-          gh release download runtime-v0.1.0 --repo AdamMusa/omarchy-ui \
+          gh release download runtime-v0.1.4 --repo AdamMusa/omarchy-ui \
             --pattern omarchy-ui-runtime --dir "$RUNNER_TEMP/runtime-release"
           cmp omarchy-ui-runtime "$RUNNER_TEMP/runtime-release/omarchy-ui-runtime"
       - name: Check Ruby and backend behavior
         run: |
           ruby -c main.rb
           ruby -c lib/backend.rb
-          ruby test/backend_test.rb
+          for test_file in test/*_test.rb; do ruby "$test_file"; done
       - name: Check manifest contract
         run: jq -e '.schemaVersion == 1 and (.kinds | length == 3)' manifest.json

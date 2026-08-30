@@ -174,6 +174,7 @@ class SuiteBackend
     nil
   end
 
+
   def relative_files(root)
     return [] unless File.directory?(root)
     result = []
@@ -296,6 +297,8 @@ OmarchyUI.plugin do
   state :primary, ""
   state :secondary, ""
   state :compose, false
+  state :page, 0
+  state :selected_plugin, ""
 
   refresh = proc do
     state.snapshot = backend.refresh
@@ -307,10 +310,10 @@ OmarchyUI.plugin do
     value = status.to_s.downcase
     danger = false
     healthy = false
-    %w[broken critical missing mismatch drift inactive slow tight hotspot invalid].each do |token|
+    %w[broken critical missing mismatch drift inactive slow tight risk invalid attention].each do |token|
       danger = true if value.include?(token)
     end
-    %w[ready valid verified finished aligned unique internal familiar steady covered available detected normal].each do |token|
+    %w[ready valid verified finished aligned unique internal familiar steady covered available detected normal active loaded].each do |token|
       healthy = true if value.include?(token)
     end
     if danger
@@ -326,10 +329,10 @@ OmarchyUI.plugin do
     value = status.to_s.downcase
     danger = false
     healthy = false
-    %w[broken critical missing mismatch drift inactive slow tight hotspot invalid].each do |token|
+    %w[broken critical missing mismatch drift inactive slow tight risk invalid attention].each do |token|
       danger = true if value.include?(token)
     end
-    %w[ready valid verified finished aligned unique internal familiar steady covered available detected normal].each do |token|
+    %w[ready valid verified finished aligned unique internal familiar steady covered available detected normal active loaded].each do |token|
       healthy = true if value.include?(token)
     end
     if danger
