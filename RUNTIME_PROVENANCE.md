@@ -1,7 +1,8 @@
 # Omarchy UI runtime provenance
 
-The bundled `omarchy-ui-runtime` is byte-for-byte the artifact published by the
-independently attested Omarchy UI release used by the marketplace-approved Omarchy Phone plugin.
+The bundled `omarchy-ui-runtime` is byte-for-byte the artifact published by an
+independently attested Omarchy UI release. It is verified separately from the
+earlier runtime bundled by the marketplace-approved Omarchy Phone plugin.
 
 - Release: [`runtime-v0.1.0`](https://github.com/AdamMusa/omarchy-ui/releases/tag/runtime-v0.1.0)
 - Source revision: [`9e102e14cdc90e1b077ec37a0646d43f104eb9e3`](https://github.com/AdamMusa/omarchy-ui/tree/9e102e14cdc90e1b077ec37a0646d43f104eb9e3)
