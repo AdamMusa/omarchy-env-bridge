@@ -105,6 +105,9 @@ class SuiteBackend
     manager = {}
     command_text(["systemctl", "--user", "show-environment"]).lines.each do |line|
       key, value = line.strip.split("=", 2)
+      if value && value.start_with?("$'") && value.end_with?("'")
+        value = value[2..-2]
+      end
       manager[key] = value if key && value
     end
     keys = %w[WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_RUNTIME_DIR PATH GTK_THEME QT_QPA_PLATFORM SDL_VIDEODRIVER MOZ_ENABLE_WAYLAND ELECTRON_OZONE_PLATFORM_HINT]
