@@ -6,8 +6,8 @@ earlier runtime bundled by the marketplace-approved Omarchy Phone plugin.
 
 - Release: [`runtime-v0.1.4`](https://github.com/AdamMusa/omarchy-ui/releases/tag/runtime-v0.1.4)
 - Runtime source revision: [`acc8938cda6298e946a2f63aaf00c67b1d402787`](https://github.com/AdamMusa/omarchy-ui/tree/acc8938cda6298e946a2f63aaf00c67b1d402787)
-- Adapter release: [`omarchy-ui` `0.0.5`](https://rubygems.org/gems/omarchy-ui/versions/0.0.5) (`zui ~> 0.0.10`)
-- Adapter gem SHA-256: `5f058fa53143dd56e79688a059465bc9837c85f5520214d6ef04edcb65a39fbe`
+- Adapter release: [`omarchy-ui` `0.0.7`](https://rubygems.org/gems/omarchy-ui/versions/0.0.7) (`zui = 0.0.10`)
+- Adapter gem SHA-256: `7971608a8b7f2c3f15a86ca8c237c5ea76d3f14f09f2cd9851ecbf4c705990da`
 - Zui release: [`zui` `0.0.10`](https://rubygems.org/gems/zui/versions/0.0.10)
 - Zui gem SHA-256: `ceec71d836c396b9944c85d5f472d34f14596a28a6dbf0c0b4687a01031627c0`
 - Remote build: [GitHub Actions run `33296176108`](https://github.com/AdamMusa/omarchy-ui/actions/runs/33296176108)

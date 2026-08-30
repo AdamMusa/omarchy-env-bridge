@@ -33,5 +33,13 @@ jobs:
           ruby -c main.rb
           ruby -c lib/backend.rb
           for test_file in test/*_test.rb; do ruby "$test_file"; done
+      - name: Verify the tree-shaken Zui package
+        run: |
+          test ! -e Desktop.qml
+          test -f ControlNode.qml
+          test -f zui-tree-shake.json
+          test -d Components/Builtins
+          test "$(find Components/Builtins -maxdepth 1 -name '*.qml' | wc -l)" -lt 241
+          jq -e '.zui_version == "0.0.10" and (.components | length > 0) and (.saved_bytes > 0)' zui-tree-shake.json
       - name: Check manifest contract
         run: jq -e '.schemaVersion == 1 and (.kinds | length == 3)' manifest.json

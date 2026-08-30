@@ -14,7 +14,6 @@ Item {
   readonly property string rubyProgram: pluginDir + "/main.rb"
   property string program: ""
   readonly property string effectiveRubyProgram: program !== "" ? program : rubyProgram
-
   property bool ready: false
   property bool stopping: false
   property string lastError: ""
