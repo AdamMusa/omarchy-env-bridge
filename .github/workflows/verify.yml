@@ -30,16 +30,14 @@ jobs:
           cmp omarchy-ui-runtime "$RUNNER_TEMP/runtime-release/omarchy-ui-runtime"
       - name: Check Ruby and backend behavior
         run: |
-          ruby -c main.rb
-          ruby -c lib/backend.rb
+          for ruby_file in main.rb config.rb lib/*.rb; do ruby -c "$ruby_file"; done
           for test_file in test/*_test.rb; do ruby "$test_file"; done
-      - name: Verify the tree-shaken Zui package
+      - name: Verify compiled QML package
         run: |
-          test ! -e Desktop.qml
-          test -f ControlNode.qml
-          test -f zui-tree-shake.json
-          test -d Components/Builtins
-          test "$(find Components/Builtins -maxdepth 1 -name '*.qml' | wc -l)" -lt 241
-          jq -e '.zui_version == "0.0.10" and (.components | length > 0) and (.saved_bytes > 0)' zui-tree-shake.json
+          sha256sum --check omarchy-ui-qml-bundle.sha256
+          test ! -e ControlNode.qml
+          test ! -d Components
+          test "$(find . -maxdepth 1 -name '*.qml' | wc -l)" -eq 4
+          jq -e '.format == "qt-aot-qml-module" and .format_version == 1 and (.artifacts | length == 2)' omarchy-ui-qml-bundle.json
       - name: Check manifest contract
         run: jq -e '.schemaVersion == 1 and (.kinds | length == 3)' manifest.json
