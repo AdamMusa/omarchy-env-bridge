@@ -357,61 +357,94 @@ OmarchyUI.plugin do
   end
 
   bar_widget do
-    row spacing: 7 do
-      icon :link, color: "#7da7ff"
-      text { state.snapshot.fetch("summary") }
+    row spacing: 6 do
+      icon :link, size: 14, color: "#7dcfff"
+      text "ENV", style: :caption, color: "#7dcfff"
+      text(style: :caption) { state.snapshot.fetch("summary") }
     end
     on_click { open_panel :env_bridge }
   end
 
   panel :env_bridge do
-    scroll width: 660, height: 760 do
+    scroll width: 660, height: 780 do
       dynamic id: :scene, spacing: 16 do
         entries = state.snapshot.fetch("items")
-        history = state.snapshot.fetch("history")
+        drift = entries.count { |entry| entry.fetch("status", "") == "drift" }
+        aligned = entries.count { |entry| entry.fetch("status", "") == "aligned" }
+        absent = entries.count { |entry| entry.fetch("status", "") == "absent" }
 
-        row spacing: 12 do
-          icon :link, size: 30, color: "#7da7ff"
-          column spacing: 2 do
-            text "Env Bridge", style: :heading, width: 500
-            text state.snapshot.fetch("summary"), style: :caption, width: 500
-          end
-          action_button :refresh, tooltip: "Refresh", foreground: "#7da7ff" do
-            async(&refresh)
+        column spacing: 2 do
+          text "#{aligned} variables cross the session boundary cleanly", style: :caption, width: 610
+          row spacing: 9 do
+            text "Env", size: 30, bold: true
+            icon :link, size: 22, color: "#7dcfff"
+            text "Bridge", size: 30, bold: true, width: 475
+            action_button :refresh, tooltip: "Retest environment", foreground: "#7dcfff" do
+              async(&refresh)
+            end
           end
         end
 
         separator
-        drift = entries.count { |entry| entry.fetch("status", "") == "drift" }
-            row spacing: 12 do
-              column spacing: 1 do
-                text drift.to_s, size: 40, bold: true, color: drift.zero? ? "#7da7ff" : "#ff6b78"
-                text "differences", style: :caption
-              end
-              column spacing: 3 do
-                text "PLUGIN SESSION", style: :caption, color: "#7da7ff", width: 210
-                text "SYSTEMD USER", style: :caption, width: 210
-              end
-            end
-            separator
+        row spacing: 0 do
+          column spacing: 3 do
+            text "PLUGIN SESSION", style: :caption, color: "#7dcfff"
+            text "●━━━━━━━━━━━━━━━━━━", size: 18, color: "#7dcfff"
+          end
+          column spacing: 3 do
+            text "BOUNDARY", style: :caption, color: "#829088"
+            icon :link, size: 26, color: drift.zero? ? "#d8ff73" : "#ff8b8b"
+          end
+          column spacing: 3 do
+            text "SYSTEMD USER", style: :caption, color: "#7dcfff"
+            text "━━━━━━━━━━━━━━━━━━●", size: 18, color: "#7dcfff"
+          end
+        end
+        row spacing: 46 do
+          column spacing: 0 do
+            text aligned.to_s.rjust(2, "0"), size: 34, bold: true, color: "#d8ff73"
+            text "ALIGNED", style: :caption
+          end
+          column spacing: 0 do
+            text drift.to_s.rjust(2, "0"), size: 34, bold: true,
+                 color: drift.zero? ? "#829088" : "#ff8b8b"
+            text "DRIFT", style: :caption
+          end
+          column spacing: 0 do
+            text absent.to_s.rjust(2, "0"), size: 34, bold: true, color: "#829088"
+            text "ABSENT", style: :caption
+          end
+        end
+        separator
+        row spacing: 10 do
+          text "ENVIRONMENT SPANS", size: 12, bold: true, color: "#7dcfff", width: 450
+          text "PLUGIN  ⇄  MANAGER", style: :caption, color: "#829088"
+        end
+
+        entries.each_with_index do |entry, index|
+          plugin_value = entry.fetch("detail", "").sub("plugin: ", "")
+          manager_value = entry.fetch("meta", "").sub("user manager: ", "")
+          plugin_value = plugin_value.byteslice(0, 76).to_s + "…" if plugin_value.bytesize > 79
+          manager_value = manager_value.byteslice(0, 76).to_s + "…" if manager_value.bytesize > 79
+          status = entry.fetch("status", "")
+          bridge_color = status == "aligned" ? "#d8ff73" : (status == "drift" ? "#ff8b8b" : "#829088")
+          column spacing: 4 do
             row spacing: 10 do
-              text "VARIABLE", style: :caption, width: 170
-              text "PLUGIN", style: :caption, width: 190
-              text "USER MANAGER", style: :caption, width: 190
+              text entry.fetch("title"), width: 455, size: 16, bold: true, color: bridge_color
+              text status.upcase, style: :caption, color: bridge_color, width: 105
             end
-            entries.each_with_index do |entry, index|
-              plugin_value = entry.fetch("detail", "").sub("plugin: ", "")
-              manager_value = entry.fetch("meta", "").sub("user manager: ", "")
-              plugin_value = plugin_value.byteslice(0, 65).to_s + "…" if plugin_value.bytesize > 68
-              manager_value = manager_value.byteslice(0, 65).to_s + "…" if manager_value.bytesize > 68
-              row spacing: 10 do
-                icon status_icon.call(entry.fetch("status", "")), size: 14, color: status_color.call(entry.fetch("status", ""))
-                text entry.fetch("title"), width: 160, color: status_color.call(entry.fetch("status", "")), wrap: true
-                text plugin_value, style: :caption, width: 180, wrap: true
-                text manager_value, style: :caption, width: 180, wrap: true
-              end
-              separator unless index == entries.length - 1
+            row spacing: 8 do
+              text "PLUGIN", style: :caption, color: "#7dcfff", width: 62
+              text plugin_value, style: :caption, width: 490, wrap: true
             end
+            text "       ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━●", style: :caption, color: bridge_color
+            row spacing: 8 do
+              text "SYSTEMD", style: :caption, color: "#7dcfff", width: 62
+              text manager_value, style: :caption, width: 490, wrap: true
+            end
+          end
+          separator unless index == entries.length - 1
+        end
       end
     end
   end
