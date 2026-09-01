@@ -164,8 +164,8 @@ class SuiteBackend
   end
 
   def safe_read(path, limit = MAX_STATE_BYTES)
-    return nil unless File.file?(path)
-    File.open(path, "rb") do |file|
+    flags = File::RDONLY | File::NOFOLLOW | File::BINARY
+    File.open(path, flags) do |file|
       data = file.read(limit + 1)
       return nil if data && data.bytesize > limit
       data
@@ -250,13 +250,22 @@ class SuiteBackend
     path.split(File::SEPARATOR).each do |part|
       next if part.empty?
       current = File.join(current, part)
-      Dir.mkdir(current, 0o700) unless File.directory?(current)
+      begin
+        Dir.mkdir(current, 0o700)
+      rescue Errno::EEXIST
+        nil
+      end
+      symlink = File.respond_to?(:symlink?) && File.symlink?(current)
+      raise "unsafe state directory" unless File.directory?(current) && !symlink
     end
+    expanded = File.expand_path(path)
+    raise "unsafe state directory" unless File.realpath(path) == expanded
+    File.chmod(0o700, expanded)
   end
 
   def load_state
-    return unless File.file?(@state_path) && !File.symlink?(@state_path)
     data = safe_read(@state_path)
+    return unless data
     parsed = data ? JSON.parse(data) : {}
     @records = Array(parsed["records"]).filter_map { |record| normalize_record(record) }.first(MAX_ITEMS)
     @history = Array(parsed["history"]).select { |entry| entry.is_a?(Hash) }.last(MAX_HISTORY)
@@ -281,9 +290,24 @@ class SuiteBackend
   def persist
     payload = JSON.generate("records" => @records.first(MAX_ITEMS), "history" => @history.last(MAX_HISTORY), "settings" => @settings)
     raise "state exceeds safety limit" if payload.bytesize > MAX_STATE_BYTES
-    temporary = "#{@state_path}.tmp-#{Process.pid}-#{rand(1_000_000)}"
-    File.open(temporary, "w", 0o600) { |file| file.write(payload) }
+    flags = File::WRONLY | File::CREAT | File::EXCL | File::NOFOLLOW
+    temporary = nil
+    10.times do
+      temporary = "#{@state_path}.tmp-#{Process.pid}-#{rand(1_000_000)}"
+      begin
+        File.open(temporary, flags, 0o600) do |file|
+          file.write(payload)
+          file.flush
+          file.fsync if file.respond_to?(:fsync)
+        end
+        break
+      rescue Errno::EEXIST
+        temporary = nil
+      end
+    end
+    raise "could not allocate private state file" unless temporary
     File.rename(temporary, @state_path)
+    File.chmod(0o600, @state_path)
   ensure
     File.delete(temporary) if temporary && File.file?(temporary)
   end
