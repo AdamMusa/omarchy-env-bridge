@@ -1,7 +1,8 @@
 # Compiled QML provenance
 
 Omarchy UI generated this package's native Qt module from the tree-shaken Zui and
-Omarchy host QML graph. Generated QML source contents were discarded after AOT compilation.
+Omarchy host QML graph. The exact generated source graph and CMake build definition are
+retained in `qml-source/` for independent audit and byte-for-byte reproduction.
 
 - Format: `qt-aot-qml-module` version 1
 - Qt: `6.11.2`
@@ -18,6 +19,15 @@ Verify the packaged libraries from the plugin directory:
 ```bash
 sha256sum --check omarchy-ui-qml-bundle.sha256
 ```
+
+Rebuild the checked-in libraries from the retained sources and compare every byte:
+
+```bash
+scripts/rebuild-qml-bundle.sh
+```
+
+The pinned toolchain, CI process, and GitHub artifact-attestation flow are documented in
+[`REPRODUCIBLE_BUILD.md`](REPRODUCIBLE_BUILD.md).
 
 `Service.qml`, `Panel.qml`, and `BarWidget.qml` are the minimal loader shims required for the
 plugin kinds declared in `manifest.json`. Application UI lives in the compiled
