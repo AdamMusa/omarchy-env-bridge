@@ -62,6 +62,11 @@ rm -r ~/.local/state/omarchy-env-bridge
 - Kinds: service, bar widget, panel
 - Target: Omarchy Quattro on x86-64 Linux
 
+## Verification
+
+Executable provenance, retained build sources, checksums, and byte-for-byte reproduction
+instructions are grouped in [`audit/`](audit/README.md).
+
 ## License
 
 MIT.
