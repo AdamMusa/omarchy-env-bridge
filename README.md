@@ -9,6 +9,13 @@ Env Bridge compares a strict non-secret allowlist of display, toolkit, runtime, 
 
 ![Env Bridge preview](preview.png)
 
+## Built entirely in Ruby
+
+All application behavior, system integration, and UI declarations are authored in
+Ruby. There is no handwritten QML source. Omarchy UI compiles the Ruby-declared UI
+into `OmarchyUI/Bundles/` and emits the three tiny root QML loader shims required by
+the plugin manifest; those shims are generated packaging output.
+
 ## Why this is distinct
 
 Environment Passport inventories project toolchains. Env Bridge diagnoses the session boundary that makes a command work in a terminal but fail from a launcher or desktop service.
@@ -61,11 +68,6 @@ rm -r ~/.local/state/omarchy-env-bridge
 - Tags: system, quickshell, bar
 - Kinds: service, bar widget, panel
 - Target: Omarchy Quattro on x86-64 Linux
-
-## Verification
-
-Executable provenance, retained build sources, checksums, and byte-for-byte reproduction
-instructions are grouped in [`audit/`](audit/README.md).
 
 ## License
 
