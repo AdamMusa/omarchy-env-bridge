@@ -62,24 +62,6 @@ rm -r ~/.local/state/omarchy-env-bridge
 - Kinds: service, bar widget, panel
 - Target: Omarchy Quattro on x86-64 Linux
 
-## Development
-
-The user interface is written entirely in Ruby with [Omarchy UI](https://github.com/AdamMusa/omarchy-ui).
-The repository contains the thin Omarchy QML bridge, attested mruby runtime, and the exact
-tree-shaken QML source snapshot used to compile the native module. `zui-tree-shake.json`
-records the selected component set and byte reduction.
-
-```bash
-sha256sum --check omarchy-ui-runtime.sha256
-scripts/rebuild-qml-bundle.sh
-ruby test/backend_test.rb
-omarchy plugin validate .
-```
-
-QML reproduction and runtime provenance are documented in
-[`REPRODUCIBLE_BUILD.md`](REPRODUCIBLE_BUILD.md) and
-[`RUNTIME_PROVENANCE.md`](RUNTIME_PROVENANCE.md).
-
 ## License
 
 MIT.
