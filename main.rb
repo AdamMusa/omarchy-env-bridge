@@ -29,7 +29,7 @@ class SuiteBackend
     @settings = {}
     @summary = "Starting"
     @score = 0
-    create_directory(@state_dir)
+    @state_directory = create_directory(@state_dir)
     load_state
   end
 
@@ -163,15 +163,26 @@ class SuiteBackend
     value.to_s.byteslice(0, limit).to_s
   end
 
-  def safe_read(path, limit = MAX_STATE_BYTES)
-    flags = File::RDONLY | File::NOFOLLOW | File::BINARY
-    File.open(path, flags) do |file|
+  def safe_read(path, limit = MAX_STATE_BYTES, directory: nil, private_file: false)
+    parent = directory || open_directory(File.dirname(path))
+    close_parent = directory.nil?
+    leaf = directory ? path.to_s : File.basename(path)
+    return nil unless safe_leaf_name?(leaf)
+
+    flags = File::RDONLY | File::NOFOLLOW | File::NONBLOCK | File::BINARY
+    File.open(descriptor_path(parent, leaf), flags) do |file|
+      file.close_on_exec = true
+      metadata = descriptor_metadata(file)
+      return nil unless safe_regular_file?(metadata, limit, private_file:)
+
       data = file.read(limit + 1)
       return nil if data && data.bytesize > limit
       data
     end
-  rescue SystemCallError
+  rescue StandardError
     nil
+  ensure
+    parent.close if close_parent && parent && !parent.closed?
   end
 
 
@@ -245,26 +256,123 @@ class SuiteBackend
     path.start_with?(home) ? path.sub(home, "~") : path
   end
 
-  def create_directory(path)
-    current = path.start_with?(File::SEPARATOR) ? File::SEPARATOR : ""
-    path.split(File::SEPARATOR).each do |part|
-      next if part.empty?
-      current = File.join(current, part)
-      begin
-        Dir.mkdir(current, 0o700)
-      rescue Errno::EEXIST
-        nil
-      end
-      symlink = File.respond_to?(:symlink?) && File.symlink?(current)
-      raise "unsafe state directory" unless File.directory?(current) && !symlink
+  def descriptor_path(file, leaf = nil)
+    base = "/proc/self/fd/#{file.fileno}"
+    leaf ? File.join(base, leaf) : base
+  end
+
+  def current_uid
+    return Process.uid if Process.respond_to?(:uid)
+    return @current_uid if @current_uid
+
+    result = OmarchyUI::Command.run(["/usr/bin/id", "-u"], timeout: 3, max_output_bytes: 128)
+    raise "could not determine process owner" unless result.success?
+    value = result.stdout.to_s.strip
+    valid = !value.empty?
+    value.each_byte { |byte| valid = false unless byte.between?(48, 57) }
+    raise "invalid process owner" unless valid
+    @current_uid = value.to_i
+  end
+
+  def safe_leaf_name?(name)
+    !name.empty? && name != "." && name != ".." && !name.include?(File::SEPARATOR)
+  end
+
+  def descriptor_command(file, argv)
+    inherited = file.close_on_exec?
+    file.close_on_exec = false
+    result = OmarchyUI::Command.run(argv, timeout: 3, max_output_bytes: 1_024)
+    raise "descriptor command failed" unless result.success?
+    result.stdout.to_s
+  ensure
+    file.close_on_exec = inherited if file && !file.closed?
+  end
+
+  def descriptor_metadata(file)
+    if file.respond_to?(:stat)
+      stat = file.stat
+      return { mode: stat.mode, uid: stat.uid, links: stat.nlink, size: stat.size }
     end
+
+    # Embedded mruby has no IO#stat; inspect the inherited descriptor through procfs.
+    output = descriptor_command(
+      file,
+      ["/usr/bin/stat", "--dereference", "--format=%f:%u:%h:%s", descriptor_path(file)]
+    ).strip
+    mode, uid, links, size = output.split(":", 4)
+    raise "invalid descriptor metadata" unless mode && uid && links && size
+    { mode: mode.to_i(16), uid: uid.to_i, links: links.to_i, size: size.to_i }
+  end
+
+  def safe_directory?(metadata, private_directory: false)
+    return false unless (metadata[:mode] & 0o170000) == 0o040000
+    return false unless metadata[:uid] == current_uid || (!private_directory && metadata[:uid].zero?)
+    return false if private_directory && (metadata[:mode] & 0o7777) != 0o700
+    true
+  end
+
+  def directory_descriptor?(file)
+    return file.stat.directory? if file.respond_to?(:stat)
+    File.directory?(descriptor_path(file))
+  end
+
+  def safe_regular_file?(metadata, limit, private_file: false)
+    return false unless (metadata[:mode] & 0o170000) == 0o100000
+    return false unless metadata[:uid] == current_uid || (!private_file && metadata[:uid].zero?)
+    return false unless metadata[:links] == 1
+    return false if metadata[:size].negative? || metadata[:size] > limit
+    return (metadata[:mode] & 0o7777) == 0o600 if private_file
+    (metadata[:mode] & 0o7022).zero?
+  end
+
+  def open_directory(path, create: false, private_directory: false)
     expanded = File.expand_path(path)
-    raise "unsafe state directory" unless File.realpath(path) == expanded
-    File.chmod(0o700, expanded)
+    flags = File::RDONLY | File::NOFOLLOW | File::NONBLOCK
+    current = File.open(File::SEPARATOR, flags)
+    current.close_on_exec = true
+    raise "unsafe directory" unless directory_descriptor?(current)
+
+    expanded.split(File::SEPARATOR).reject(&:empty?).each do |part|
+      raise "unsafe directory component" unless safe_leaf_name?(part)
+      child_path = descriptor_path(current, part)
+      if create
+        begin
+          Dir.mkdir(child_path, 0o700)
+        rescue Errno::EEXIST
+          nil
+        end
+      end
+      child = File.open(child_path, flags)
+      child.close_on_exec = true
+      raise "unsafe directory" unless directory_descriptor?(child)
+      current.close
+      current = child
+    end
+
+    if private_directory
+      File.chmod(0o700, descriptor_path(current))
+      raise "unsafe state directory" unless safe_directory?(descriptor_metadata(current), private_directory: true)
+    end
+    current
+  rescue StandardError
+    current.close if current && !current.closed?
+    raise
+  end
+
+  def create_directory(path)
+    open_directory(path, create: true, private_directory: true)
+  end
+
+  def sync_descriptor(file, data_only: false)
+    return file.fsync if file.respond_to?(:fsync)
+
+    # Embedded mruby has no IO#fsync; sync the inherited file or directory descriptor.
+    option = data_only ? "--data" : "--file-system"
+    descriptor_command(file, ["/usr/bin/sync", option, descriptor_path(file)])
   end
 
   def load_state
-    data = safe_read(@state_path)
+    data = safe_read(File.basename(@state_path), MAX_STATE_BYTES, directory: @state_directory, private_file: true)
     return unless data
     parsed = data ? JSON.parse(data) : {}
     @records = Array(parsed["records"]).filter_map { |record| normalize_record(record) }.first(MAX_ITEMS)
@@ -291,25 +399,36 @@ class SuiteBackend
     payload = JSON.generate("records" => @records.first(MAX_ITEMS), "history" => @history.last(MAX_HISTORY), "settings" => @settings)
     raise "state exceeds safety limit" if payload.bytesize > MAX_STATE_BYTES
     flags = File::WRONLY | File::CREAT | File::EXCL | File::NOFOLLOW
-    temporary = nil
+    temporary_name = nil
     10.times do
-      temporary = "#{@state_path}.tmp-#{Process.pid}-#{rand(1_000_000)}"
+      temporary_name = "state.json.tmp-#{Process.pid}-#{rand(1_000_000)}"
       begin
-        File.open(temporary, flags, 0o600) do |file|
+        File.open(descriptor_path(@state_directory, temporary_name), flags, 0o600) do |file|
+          file.close_on_exec = true
+          File.chmod(0o600, descriptor_path(file))
+          metadata = descriptor_metadata(file)
+          raise "unsafe private state file" unless safe_regular_file?(metadata, MAX_STATE_BYTES, private_file: true)
           file.write(payload)
           file.flush
-          file.fsync if file.respond_to?(:fsync)
+          sync_descriptor(file, data_only: true)
         end
         break
       rescue Errno::EEXIST
-        temporary = nil
+        temporary_name = nil
       end
     end
-    raise "could not allocate private state file" unless temporary
-    File.rename(temporary, @state_path)
-    File.chmod(0o600, @state_path)
+    raise "could not allocate private state file" unless temporary_name
+    File.rename(
+      descriptor_path(@state_directory, temporary_name),
+      descriptor_path(@state_directory, File.basename(@state_path))
+    )
+    sync_descriptor(@state_directory)
   ensure
-    File.delete(temporary) if temporary && File.file?(temporary)
+    begin
+      File.delete(descriptor_path(@state_directory, temporary_name)) if temporary_name
+    rescue SystemCallError
+      nil
+    end
   end
 end
 
